@@ -1,0 +1,13 @@
+# KATTRAL — robots.txt
+# https://kattral.vercel.app/
+
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://kattral.netlify.app/sitemap.xml
+
+# Block irrelevant assets from crawlers
+Disallow: /node_modules/
+Disallow: /dist/
+Disallow: /.git/

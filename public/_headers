@@ -1,0 +1,45 @@
+# Netlify Security Headers — KATTRAL
+# Applies to all routes on Netlify hosting
+
+/*
+  # Strict HTTPS — 1 year, include subdomains
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+  # Prevent MIME type sniffing
+  X-Content-Type-Options: nosniff
+
+  # No iframing of KATTRAL pages
+  X-Frame-Options: DENY
+
+  # Modern XSS protection (older browsers)
+  X-XSS-Protection: 1; mode=block
+
+  # Referrer policy — send origin only on HTTPS requests
+  Referrer-Policy: strict-origin-when-cross-origin
+
+  # Permissions Policy — restrict sensitive browser APIs
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()
+
+  # Content Security Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https: wss:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;
+
+  # Cache control for HTML — always revalidate
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Static assets — long cache
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Fonts
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Public files
+/manifest.json
+  Cache-Control: public, max-age=86400
+
+/robots.txt
+  Cache-Control: public, max-age=86400
+
+/sitemap.xml
+  Cache-Control: public, max-age=86400

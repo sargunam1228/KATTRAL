@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!-- ═══════════════════════════════════════
+         PRIMARY META
+    ═══════════════════════════════════════ -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#E60012" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="author" content="KATTRAL" />
+    <meta name="keywords" content="Japanese learning, JLPT N5, JLPT N4, Hiragana, Katakana, Kanji, vocabulary, grammar, listening, Tamil, English, Japanese language app" />
+
+    <title>KATTRAL — Learn Japanese. Build Your Future. (JLPT N5 &amp; N4)</title>
+    <meta name="description" content="KATTRAL is a dedicated Japanese language learning platform focused strictly on JLPT N5 and JLPT N4. Master Hiragana, Katakana, Kanji, Vocabulary, Grammar, and Listening with English &amp; Tamil explanations." />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://kattral.netlify.app/" />
+
+    <!-- ═══════════════════════════════════════
+         OPEN GRAPH (Facebook / LinkedIn / WhatsApp)
+    ═══════════════════════════════════════ -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://kattral.netlify.app/" />
+    <meta property="og:title" content="KATTRAL — Learn Japanese. Build Your Future. (JLPT N5 &amp; N4)" />
+    <meta property="og:description" content="Master Hiragana, Katakana, Kanji, Vocabulary, Grammar, and Listening with English &amp; Tamil explanations. Powered by JLPT N5 &amp; N4 curriculum." />
+    <meta property="og:image" content="https://kattral.netlify.app/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="KATTRAL Japanese Learning Platform — JLPT N5 &amp; N4" />
+    <meta property="og:site_name" content="KATTRAL" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- ═══════════════════════════════════════
+         TWITTER / X CARD
+    ═══════════════════════════════════════ -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@kattral_jp" />
+    <meta name="twitter:creator" content="@kattral_jp" />
+    <meta name="twitter:title" content="KATTRAL — Learn Japanese (JLPT N5 &amp; N4)" />
+    <meta name="twitter:description" content="Master Hiragana, Katakana, Kanji, Grammar &amp; Listening with English &amp; Tamil explanations. Free JLPT platform." />
+    <meta name="twitter:image" content="https://kattral.netlify.app/og-image.jpg" />
+
+    <!-- ═══════════════════════════════════════
+         PWA / ICONS
+    ═══════════════════════════════════════ -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/kattral_logo.jpg" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- ═══════════════════════════════════════
+         GOOGLE FONTS
+    ═══════════════════════════════════════ -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- ═══════════════════════════════════════
+         TAILWIND CSS (CDN for utility compilation)
+    ═══════════════════════════════════════ -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              japaneseRed: '#E60012',
+              darkRed: '#C00717'
+            }
+          }
+        }
+      }
+    </script>
+
+    <!-- ═══════════════════════════════════════
+         JSON-LD STRUCTURED DATA
+    ═══════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "KATTRAL",
+      "url": "https://kattral.netlify.app/",
+      "description": "KATTRAL is a Japanese language learning platform focused on JLPT N5 and N4. Features Hiragana, Katakana, Kanji, Vocabulary, Grammar, Listening, Speaking and Writing practice.",
+      "applicationCategory": "EducationApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "inLanguage": ["en", "ta"],
+      "about": {
+        "@type": "Thing",
+        "name": "Japanese Language Learning",
+        "description": "JLPT N5 and N4 curriculum covering Hiragana, Katakana, Kanji, Vocabulary and Grammar"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "KATTRAL",
+        "url": "https://kattral.netlify.app/"
+      },
+      "featureList": [
+        "JLPT N5 Module",
+        "JLPT N4 Module",
+        "Flashcard Deck",
+        "Quiz Engine",
+        "Listening Practice",
+        "Speaking Practice",
+        "Writing Practice with Canvas",
+        "Progress Tracking",
+        "Smart Japanese Search",
+        "Bookmarks",
+        "Dark Mode",
+        "Mobile Friendly"
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

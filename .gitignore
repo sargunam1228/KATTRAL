@@ -1,0 +1,67 @@
+# ── Logs ────────────────────────────────────────
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── Build Outputs ────────────────────────────────
+node_modules
+dist
+dist-ssr
+*.local
+
+# ── Editor ──────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+Thumbs.db
+
+# ── Large Binary / OCR Model Files (8MB+) ────────
+*.traineddata
+eng.traineddata
+jpn.traineddata
+
+# ── Large Local Asset Folders ────────────────────
+# (Notes PDFs, kanji images, video files — too large for Git)
+notes n4/
+notes n5/
+kanji/
+video/
+
+# ── Python Scripts (dev-only utilities) ──────────
+*.py
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# ── Playwright Test Artifacts ────────────────────
+playwright-report/
+test-results/
+.playwright/
+
+# ── Environment ──────────────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ── OS ───────────────────────────────────────────
+.DS_Store
+*.DS_Store
+ehthumbs.db
+Desktop.ini
