@@ -35,7 +35,7 @@ jpn.traineddata
 notes n4/
 notes n5/
 kanji/
-video/
+
 
 # ── Python Scripts (dev-only utilities) ──────────
 *.py
