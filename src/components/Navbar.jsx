@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
+  ArrowLeft,
   Search, 
   Sun, 
   Moon, 
@@ -23,6 +24,7 @@ export const Navbar = () => {
     logoutUser,
     activeView, 
     setActiveView, 
+    navigateBack,
     darkMode, 
     setDarkMode, 
     isN4Unlocked, 
@@ -57,28 +59,42 @@ export const Navbar = () => {
 
   return (
     <header className="sticky top-0 z-50 glass-nav transition-all duration-300 border-b border-slate-200 dark:border-slate-800/80">
-      <div className="container-custom flex items-center justify-between h-16 sm:h-20 px-4 sm:px-6 lg:px-8">
+      <div className="container-custom flex items-center justify-between h-16 sm:h-20 px-3 sm:px-6 lg:px-8">
         
-        {/* Brand Logo & Tagline Group (Left) */}
-        <div 
-          onClick={() => handleNavClick('home')}
-          className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group shrink-0 select-none"
-        >
-          <div className="hanko-stamp group-hover:scale-105 transition-transform shrink-0 flex items-center justify-center text-center">
-            勝
-          </div>
-          <div className="flex flex-col justify-center">
-            <div className="flex items-center gap-2">
-              <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">
-                KATTRAL
-              </span>
-              <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full font-extrabold bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/80 shrink-0 leading-none">
-                JLPT N5/N4
-              </span>
+        {/* Brand Logo & Back Button Group (Left) */}
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 select-none">
+          {activeView !== 'home' && (
+            <button 
+              type="button"
+              onClick={() => navigateBack('home')}
+              className="p-1.5 sm:p-2 rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/50 bg-slate-100 dark:bg-slate-800/60"
+              title="Go back to recent page"
+              aria-label="Back"
+            >
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+            </button>
+          )}
+
+          <div 
+            onClick={() => handleNavClick('home')}
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer group shrink-0"
+          >
+            <div className="hanko-stamp group-hover:scale-105 transition-transform shrink-0 flex items-center justify-center text-center">
+              勝
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-jp hidden sm:block leading-tight mt-1">
-              Japanese Learning Platform
-            </p>
+            <div className="flex flex-col justify-center">
+              <div className="flex items-center gap-2">
+                <span className="text-lg sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                  KATTRAL
+                </span>
+                <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full font-extrabold bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/80 shrink-0 leading-normal inline-flex items-center">
+                  JLPT N5/N4
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-jp hidden sm:block leading-tight mt-0.5">
+                Japanese Learning Platform
+              </p>
+            </div>
           </div>
         </div>
 

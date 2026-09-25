@@ -8,6 +8,7 @@ import { Pagination } from '../components/Pagination';
 export const TestView = () => {
   const { 
     setActiveView, 
+    navigateBack,
     recordTestAttempt, 
     vocabStats, 
     recordActivityAttempt,
@@ -207,7 +208,7 @@ export const TestView = () => {
               <span>Restart Test Bank</span>
             </button>
             <button
-              onClick={() => setActiveView('practice')}
+              onClick={() => navigateBack('practice')}
               className="btn-primary flex-1 justify-center py-3"
             >
               <span>Back to Practice</span>

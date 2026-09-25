@@ -2,8 +2,8 @@
 @import "tailwindcss";
 
 :root {
-  --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-jp: 'Noto Sans JP', sans-serif;
+  --font-main: 'Outfit', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-jp: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif;
 
   /* Color Palette - Light Mode Tokens */
   --bg-primary: #F8FAFC;
@@ -439,18 +439,24 @@ html:not(.dark) :is(
   --shadow-glow: 0 0 25px rgba(255, 42, 75, 0.25);
 }
 
-* {
-  margin: 0;
-  padding: 0;
+*, ::before, ::after {
   box-sizing: border-box;
-  font-family: var(--font-main);
   -webkit-tap-highlight-color: transparent;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   background-color: var(--bg-primary);
   color: var(--text-dark);
   min-height: 100vh;
@@ -458,9 +464,15 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+button, input, optgroup, select, textarea {
+  font-family: inherit;
+}
+
 /* Typography Helpers */
 .font-jp {
   font-family: var(--font-jp);
+  line-height: 1.45;
+  letter-spacing: 0.015em;
 }
 
 /* Floating Animations */
@@ -821,10 +833,16 @@ html:not(.dark) .kattral-card button.bg-red-600 {
     padding-bottom: 4px !important;
   }
 
-  /* Text Wrapping & Overflow Guards */
-  h1, h2, h3, h4, p, span, div, code {
-    overflow-wrap: anywhere !important;
-    word-break: break-word !important;
+  /* Clean Typography & Text Alignment Guards on Mobile */
+  h1, h2, h3, h4, h5, h6, p {
+    overflow-wrap: break-word;
+    word-break: normal;
+    text-wrap: pretty;
+  }
+
+  button, .btn-primary, .btn-secondary, [role="button"] {
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
   }
 
   /* Flip cards padding on mobile */

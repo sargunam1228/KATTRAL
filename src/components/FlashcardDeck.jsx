@@ -27,7 +27,7 @@ const shuffleArray = (arr) => {
 };
 
 export const FlashcardDeck = ({ items: propItems }) => {
-  const { playSpeech, recordActivityAttempt, setActiveView, markItemCompleted } = useApp();
+  const { playSpeech, recordActivityAttempt, navigateBack, markItemCompleted } = useApp();
 
   // Level Selection State: null | 'N5' | 'N4'
   const [selectedLevel, setSelectedLevel] = useState(null);
@@ -38,6 +38,29 @@ export const FlashcardDeck = ({ items: propItems }) => {
   const [isAnswered, setIsAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
+
+  // Sync back navigation between selected level and level list
+  useEffect(() => {
+    const handlePop = (e) => {
+      if (selectedLevel && (!e.state || !e.state.level)) {
+        setSelectedLevel(null);
+      }
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [selectedLevel]);
+
+  const handleSelectLevel = (level) => {
+    setSelectedLevel(level);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setIsAnswered(false);
+    setIsCorrect(false);
+    setSelectedOption(null);
+    if (level && typeof window !== 'undefined' && window.history?.pushState) {
+      window.history.pushState({ view: 'flashcards', level }, '', `#flashcards-${level.toLowerCase()}`);
+    }
+  };
   const [options, setOptions] = useState([]);
   const [typedAnswer, setTypedAnswer] = useState('');
 
@@ -153,7 +176,7 @@ export const FlashcardDeck = ({ items: propItems }) => {
         {/* Navigation Bar */}
         <div className="flex items-center justify-between">
           <button
-            onClick={() => setActiveView('practice')}
+            onClick={() => navigateBack('practice')}
             className="btn-secondary py-2 px-4 text-xs font-bold"
           >
             ← Back to Practice Hub
@@ -183,10 +206,7 @@ export const FlashcardDeck = ({ items: propItems }) => {
           
           {/* N5 LEVEL BUTTON */}
           <div
-            onClick={() => {
-              setSelectedLevel('N5');
-              setCurrentIndex(0);
-            }}
+            onClick={() => handleSelectLevel('N5')}
             className="kattral-card p-8 space-y-4 cursor-pointer group hover:border-red-500 transition-all hover:scale-[1.02] shadow-xl border-2 border-red-500/20 text-center"
           >
             <div className="w-16 h-16 rounded-3xl bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 font-black text-2xl font-jp mx-auto flex items-center justify-center shadow-md">
@@ -209,10 +229,7 @@ export const FlashcardDeck = ({ items: propItems }) => {
 
           {/* N4 LEVEL BUTTON */}
           <div
-            onClick={() => {
-              setSelectedLevel('N4');
-              setCurrentIndex(0);
-            }}
+            onClick={() => handleSelectLevel('N4')}
             className="kattral-card p-8 space-y-4 cursor-pointer group hover:border-blue-500 transition-all hover:scale-[1.02] shadow-xl border-2 border-blue-500/20 text-center"
           >
             <div className="w-16 h-16 rounded-3xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 font-black text-2xl font-jp mx-auto flex items-center justify-center shadow-md">
@@ -244,7 +261,13 @@ export const FlashcardDeck = ({ items: propItems }) => {
       {/* Top Header */}
       <div className="flex items-center justify-between">
         <button
-          onClick={() => setSelectedLevel(null)}
+          onClick={() => {
+            if (typeof window !== 'undefined' && window.location.hash.includes('flashcards-')) {
+              window.history.back();
+            } else {
+              setSelectedLevel(null);
+            }
+          }}
           className="btn-secondary py-2 px-4 text-xs font-bold flex items-center gap-1"
         >
           <ChevronLeft className="w-4 h-4" />

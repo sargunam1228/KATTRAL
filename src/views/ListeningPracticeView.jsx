@@ -49,12 +49,24 @@ const n4VideosData = [
 ];
 
 export const ListeningPracticeView = () => {
-  const { setActiveView, recordActivityAttempt } = useApp();
+  const { setActiveView, navigateBack, recordActivityAttempt } = useApp();
   
   // Level state: null (selection screen) | 'n5' | 'n4'
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [channelNames, setChannelNames] = useState({});
   const playersRef = useRef({});
+
+  // Sync back navigation between selected level and level list
+  useEffect(() => {
+    const handlePop = (e) => {
+      if (selectedLevel && (!e.state || !e.state.level)) {
+        pauseAllPlayers();
+        setSelectedLevel(null);
+      }
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [selectedLevel]);
 
   // Pause all playing videos
   const pauseAllPlayers = () => {
@@ -83,6 +95,9 @@ export const ListeningPracticeView = () => {
     setSelectedLevel(level);
     if (level && recordActivityAttempt) {
       recordActivityAttempt('listening', true);
+    }
+    if (level && typeof window !== 'undefined' && window.history?.pushState) {
+      window.history.pushState({ view: 'listening', level }, '', `#listening-${level}`);
     }
   };
 
@@ -215,7 +230,7 @@ export const ListeningPracticeView = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <button
-            onClick={() => setActiveView('practice')}
+            onClick={() => navigateBack('practice')}
             className="btn-secondary py-2 px-4 text-xs font-bold"
           >
             ← Back to Practice Hub
@@ -320,7 +335,13 @@ export const ListeningPracticeView = () => {
       {/* Top Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <button
-          onClick={() => handleSelectLevel(null)}
+          onClick={() => {
+            if (typeof window !== 'undefined' && window.location.hash.includes('listening-')) {
+              window.history.back();
+            } else {
+              handleSelectLevel(null);
+            }
+          }}
           className="btn-secondary py-2 px-4 text-xs font-bold"
         >
           ← Change Level (N5 / N4)

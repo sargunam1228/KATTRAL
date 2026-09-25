@@ -2,8 +2,107 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AppContext = createContext();
 
+const VALID_VIEWS = [
+  'home',
+  'n5',
+  'n4',
+  'test',
+  'practice',
+  'listening',
+  'speaking',
+  'writing',
+  'flashcards',
+  'quiz',
+  'progress',
+  'bookmarks',
+  'profile',
+  'about'
+];
+
 export const AppProvider = ({ children }) => {
-  const [activeView, setActiveView] = useState('home');
+  const getInitialView = () => {
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hashView = window.location.hash.replace('#', '').split('-')[0];
+      if (VALID_VIEWS.includes(hashView)) {
+        return hashView;
+      }
+    }
+    return 'home';
+  };
+
+  const [activeView, setActiveViewInternal] = useState(getInitialView);
+  const [viewHistory, setViewHistory] = useState(() => [getInitialView()]);
+
+  const setActiveView = (newView, options = { replace: false }) => {
+    if (!VALID_VIEWS.includes(newView)) return;
+
+    if (typeof window !== 'undefined' && window.history) {
+      const currentHash = window.location.hash.replace('#', '').split('-')[0];
+      if (options.replace || currentHash === newView) {
+        window.history.replaceState({ view: newView }, '', `#${newView}`);
+      } else {
+        window.history.pushState({ view: newView }, '', `#${newView}`);
+      }
+    }
+
+    setActiveViewInternal(newView);
+    setViewHistory((prev) => {
+      if (prev[prev.length - 1] === newView) return prev;
+      return [...prev, newView];
+    });
+  };
+
+  const navigateBack = (fallbackView = 'home') => {
+    if (typeof window !== 'undefined' && window.history) {
+      if (viewHistory.length > 1) {
+        window.history.back();
+        return;
+      }
+    }
+    setActiveView(fallbackView);
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const currentView = getInitialView();
+    // Guard browser history so Back button never exits or closes the web application
+    if (!window.history.state || !window.history.state.view) {
+      window.history.replaceState({ view: currentView, isBase: true }, '', `#${currentView}`);
+      if (currentView === 'home') {
+        window.history.pushState({ view: 'home', isBase: false }, '', '#home');
+      }
+    }
+
+    const handlePopState = (event) => {
+      let targetView = event.state?.view;
+      if (!targetView && window.location.hash) {
+        const hashView = window.location.hash.replace('#', '').split('-')[0];
+        if (VALID_VIEWS.includes(hashView)) {
+          targetView = hashView;
+        }
+      }
+
+      // If at base home or null, stay safely on home without exiting
+      if (!targetView || !VALID_VIEWS.includes(targetView)) {
+        targetView = 'home';
+        if (event.state?.isBase) {
+          window.history.pushState({ view: 'home', isBase: false }, '', '#home');
+        }
+      }
+
+      setActiveViewInternal(targetView);
+      setViewHistory((prev) => {
+        if (prev.length > 1) {
+          return prev.slice(0, -1);
+        }
+        return [targetView];
+      });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   
   // Active Logged-in User Session (Persisted in localStorage)
   const [currentUser, setCurrentUser] = useState(() => {
@@ -600,6 +699,8 @@ export const AppProvider = ({ children }) => {
         logoutUser,
         activeView,
         setActiveView,
+        navigateBack,
+        viewHistory,
         darkMode,
         setDarkMode,
         isN4Unlocked,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { speakingPracticeData } from '../data/speakingPracticeData';
 import { 
@@ -64,14 +64,6 @@ const analyzeJapaneseSpeech = (spokenText, targetItem, confidenceScore) => {
     };
   }
 
-  // Safety against false positives: low confidence audio treated as uncertain / retry
-  if (confidenceScore !== undefined && confidenceScore > 0 && confidenceScore < 0.65) {
-    return {
-      isCorrect: false,
-      reason: 'Low speech confidence or unclear pronunciation. Please speak again clearly.'
-    };
-  }
-
   const normSpoken = normalizeText(spokenText);
   const normTargetJp = normalizeText(targetItem.japanese);
   const normTargetRom = normalizeText(targetItem.romaji);
@@ -81,6 +73,26 @@ const analyzeJapaneseSpeech = (spokenText, targetItem, confidenceScore) => {
     return {
       isCorrect: true,
       reason: 'Perfect! Japanese sentence, word order, and pronunciation are 100% correct.'
+    };
+  }
+
+  // Close subphrase match (e.g., punctuation or trailing particle variation)
+  if (
+    normTargetJp.length >= 2 &&
+    (normSpoken.includes(normTargetJp) || normTargetJp.includes(normSpoken)) &&
+    Math.abs(normSpoken.length - normTargetJp.length) <= 3
+  ) {
+    return {
+      isCorrect: true,
+      reason: 'Great job! Spoken Japanese matches the expected sentence.'
+    };
+  }
+
+  // Safety against false positives: low confidence audio treated as uncertain only when not matching
+  if (confidenceScore !== undefined && confidenceScore > 0 && confidenceScore < 0.35) {
+    return {
+      isCorrect: false,
+      reason: 'Low speech confidence or unclear pronunciation. Please speak again clearly.'
     };
   }
 
@@ -129,7 +141,8 @@ const analyzeJapaneseSpeech = (spokenText, targetItem, confidenceScore) => {
 };
 
 export const SpeakingPracticeView = () => {
-  const { setActiveView, recordActivityAttempt } = useApp();
+  const { navigateBack, recordActivityAttempt } = useApp();
+  const recognitionRef = useRef(null);
   
   // Selection / Practice Mode State
   const [selectedCategory, setSelectedCategory] = useState('Greetings & Basic Expressions');
@@ -161,14 +174,30 @@ export const SpeakingPracticeView = () => {
 
   const currentItem = activeSet[currentIndex] || activeSet[0];
 
-  // Stop audio on unmount or view change
+  // Stop audio and recognition on unmount or view change
   useEffect(() => {
     return () => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {}
+      }
     };
   }, []);
+
+  // Listen to browser popstate to allow back navigation from active session to category select
+  useEffect(() => {
+    const handlePop = (e) => {
+      if (isSessionStarted && (!e.state || !e.state.session)) {
+        setIsSessionStarted(false);
+      }
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [isSessionStarted]);
 
   // Reset state when item or category changes
   useEffect(() => {
@@ -179,6 +208,27 @@ export const SpeakingPracticeView = () => {
       setRecordedTranscript('');
     }
   }, [currentIndex, selectedCategory, isSessionStarted, currentItem]);
+
+  // Stop Audio helper
+  const stopAudio = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsPlaying(false);
+    setIsPaused(false);
+  };
+
+  // Clean up any running speech or audio when component unmounts
+  useEffect(() => {
+    return () => {
+      stopAudio();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {}
+      }
+    };
+  }, []);
 
   // Handle Audio Playback
   const handlePlayAudio = () => {
@@ -217,78 +267,210 @@ export const SpeakingPracticeView = () => {
     window.speechSynthesis.speak(utterance);
   };
 
-  // Stop Audio helper
-  const stopAudio = () => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+  // Stop speech recognition helper
+  const handleStopSpeaking = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
     }
-    setIsPlaying(false);
-    setIsPaused(false);
+    setIsRecording(false);
   };
 
   // Handle Speech Recognition Mic Recording & AI Speech Analysis ONLY (No typing option)
-  const handleStartSpeaking = () => {
+  const handleStartSpeaking = async () => {
     stopAudio();
-    setIsRecording(true);
+
+    // If currently recording, tapping the button stops recognition to process speech
+    if (isRecording) {
+      handleStopSpeaking();
+      return;
+    }
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch (e) {}
+      recognitionRef.current = null;
+    }
+
     setRecordedTranscript('');
     setAnalysisResult(null);
+
+    // 1. Check if microphone permission is already granted via Permissions API
+    let hasGrantedPermission = false;
+    if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
+      try {
+        const permStatus = await navigator.permissions.query({ name: 'microphone' });
+        if (permStatus?.state === 'granted') {
+          hasGrantedPermission = true;
+        } else if (permStatus?.state === 'denied') {
+          setIsRecording(false);
+          setIsAnswered(true);
+          setAttempts((prev) => prev + 1);
+          setAnalysisResult({
+            isCorrect: false,
+            reason: 'Microphone access blocked. Please tap the lock / settings icon in your browser address bar to allow microphone access.'
+          });
+          setIsCorrect(false);
+          return;
+        }
+      } catch (e) {
+        // Permissions query not supported or rejected on some browsers; continue to getUserMedia probe
+      }
+    }
+
+    // 2. If not already verified as granted, explicitly request microphone permission via getUserMedia
+    if (!hasGrantedPermission && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      try {
+        const probeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Permission successfully granted by user! Release probe stream so SpeechRecognition can acquire audio
+        probeStream.getTracks().forEach((track) => track.stop());
+        await new Promise((resolve) => setTimeout(resolve, 80));
+      } catch (err) {
+        console.warn('Microphone permission request error:', err);
+        setIsRecording(false);
+        setIsAnswered(true);
+        setAttempts((prev) => prev + 1);
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setAnalysisResult({
+            isCorrect: false,
+            reason: 'Microphone access blocked. Please tap the lock / settings icon in your browser address bar to allow microphone access.'
+          });
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          setAnalysisResult({
+            isCorrect: false,
+            reason: 'No microphone device found. Please verify your microphone is connected and enabled.'
+          });
+        } else {
+          setAnalysisResult({
+            isCorrect: false,
+            reason: 'Unable to access microphone. Please check your browser site permissions and try again.'
+          });
+        }
+        setIsCorrect(false);
+        return;
+      }
+    }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'ja-JP';
-      recognition.interimResults = false;
+      try {
+        const recognition = new SpeechRecognition();
+        recognitionRef.current = recognition;
+        recognition.lang = 'ja-JP';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 5;
 
-      recognition.onresult = (event) => {
-        const result = event.results[0][0];
-        const transcript = result.transcript;
-        const confidence = result.confidence;
-
-        setIsRecording(false);
-        setRecordedTranscript(transcript);
-        setIsAnswered(true);
-        setAttempts((prev) => prev + 1);
-
-        // Run AI Speech Analysis Engine
-        const evalResult = analyzeJapaneseSpeech(transcript, currentItem, confidence);
-        setAnalysisResult(evalResult);
-
-        if (recordActivityAttempt) {
-          recordActivityAttempt('speaking', evalResult.isCorrect);
-        }
-
-        if (evalResult.isCorrect) {
-          setIsCorrect(true);
-        } else {
-          setIsCorrect(false); // STRICT LOCK: Next remains disabled!
-        }
-      };
-
-      recognition.onerror = () => {
-        setIsRecording(false);
-        setIsAnswered(true);
-        setAttempts((prev) => prev + 1);
-        const errResult = {
-          isCorrect: false,
-          reason: 'Microphone recognition error or low audio confidence. Please try speaking again.'
+        recognition.onstart = () => {
+          setIsRecording(true);
         };
-        setAnalysisResult(errResult);
-        if (recordActivityAttempt) {
-          recordActivityAttempt('speaking', false);
-        }
-        setIsCorrect(false); // SAFETY: NEVER grant correct on error!
-      };
 
-      recognition.start();
+        recognition.onresult = (event) => {
+          setIsRecording(false);
+          const candidates = [];
+          if (event.results && event.results.length > 0) {
+            for (let i = 0; i < event.results.length; i++) {
+              for (let j = 0; j < event.results[i].length; j++) {
+                const alt = event.results[i][j];
+                if (alt?.transcript) {
+                  candidates.push({
+                    transcript: alt.transcript.trim(),
+                    confidence: alt.confidence || 0.9
+                  });
+                }
+              }
+            }
+          }
+
+          if (candidates.length === 0) {
+            setIsAnswered(true);
+            setAttempts((prev) => prev + 1);
+            setAnalysisResult({
+              isCorrect: false,
+              reason: 'No speech recognized. Please speak clearly into your microphone.'
+            });
+            setIsCorrect(false);
+            return;
+          }
+
+          let bestEval = null;
+          let bestTranscript = candidates[0].transcript;
+
+          for (const cand of candidates) {
+            const res = analyzeJapaneseSpeech(cand.transcript, currentItem, cand.confidence);
+            if (!bestEval || res.isCorrect) {
+              bestEval = res;
+              bestTranscript = cand.transcript;
+              if (res.isCorrect) break;
+            }
+          }
+
+          setRecordedTranscript(bestTranscript);
+          setIsAnswered(true);
+          setAttempts((prev) => prev + 1);
+          setAnalysisResult(bestEval);
+
+          if (recordActivityAttempt) {
+            recordActivityAttempt('speaking', bestEval.isCorrect);
+          }
+          setIsCorrect(bestEval.isCorrect);
+        };
+
+        recognition.onerror = (event) => {
+          setIsRecording(false);
+          const errorType = event?.error;
+          if (errorType === 'aborted') {
+            return;
+          }
+
+          setIsAnswered(true);
+          setAttempts((prev) => prev + 1);
+
+          let reason = 'Microphone recognition error. Please try speaking again.';
+          if (errorType === 'not-allowed' || errorType === 'service-not-allowed') {
+            reason = 'Microphone access blocked. Please tap the lock / settings icon in your browser address bar to allow microphone access.';
+          } else if (errorType === 'no-speech') {
+            reason = 'No speech detected. Please speak clearly into your microphone.';
+          } else if (errorType === 'audio-capture') {
+            reason = 'No microphone device found or audio hardware is busy. Please verify your microphone.';
+          } else if (errorType === 'network') {
+            reason = 'Speech recognition network error. Please verify your internet connection.';
+          }
+
+          setAnalysisResult({ isCorrect: false, reason });
+          if (recordActivityAttempt) {
+            recordActivityAttempt('speaking', false);
+          }
+          setIsCorrect(false); // SAFETY: NEVER grant correct on error!
+        };
+
+        recognition.onend = () => {
+          setIsRecording(false);
+        };
+
+        setIsRecording(true);
+        recognition.start();
+      } catch (err) {
+        console.error('Error starting SpeechRecognition:', err);
+        setIsRecording(false);
+        setIsAnswered(true);
+        setAnalysisResult({
+          isCorrect: false,
+          reason: 'Could not activate microphone recognition. Please verify microphone access and try again.'
+        });
+      }
     } else {
-      // Browser fallback simulation for systems without STT hardware
+      // Browser fallback simulation for environments without Web Speech API
+      setIsRecording(true);
       setTimeout(() => {
         setIsRecording(false);
         setIsAnswered(true);
         setAttempts((prev) => prev + 1);
         setRecordedTranscript(currentItem.japanese);
-        const evalResult = analyzeJapaneseSpeech(currentItem.japanese, currentItem, 0.98);
+        const evalResult = analyzeJapaneseSpeech(currentItem.japanese, currentItem, 1.0);
         setAnalysisResult(evalResult);
         if (recordActivityAttempt) {
           recordActivityAttempt('speaking', evalResult.isCorrect);
@@ -303,6 +485,9 @@ export const SpeakingPracticeView = () => {
     if (isCorrect !== true) return; // Strict lock: impossible to proceed if not 100% correct
 
     stopAudio();
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch (e) {}
+    }
     if (currentIndex + 1 < activeSet.length) {
       setCurrentIndex((prev) => prev + 1);
     } else {
@@ -314,6 +499,9 @@ export const SpeakingPracticeView = () => {
   const handlePrev = () => {
     if (currentIndex > 0) {
       stopAudio();
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch (e) {}
+      }
       setCurrentIndex((prev) => prev - 1);
     }
   };
@@ -326,6 +514,9 @@ export const SpeakingPracticeView = () => {
     setAttempts(0);
     setIsCompleted(false);
     setIsSessionStarted(true);
+    if (typeof window !== 'undefined' && window.history?.pushState) {
+      window.history.pushState({ view: 'speaking', session: true }, '', '#speaking-session');
+    }
   };
 
   // 1. CATEGORY SELECTION SCREEN
@@ -335,7 +526,7 @@ export const SpeakingPracticeView = () => {
         {/* Navigation Bar */}
         <div className="flex items-center justify-between">
           <button
-            onClick={() => setActiveView('practice')}
+            onClick={() => navigateBack('practice')}
             className="btn-secondary py-2 px-4 text-xs font-bold"
           >
             ← Back to Practice Hub
@@ -452,7 +643,13 @@ export const SpeakingPracticeView = () => {
               <span>Retry Category</span>
             </button>
             <button
-              onClick={() => setIsSessionStarted(false)}
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.location.hash.includes('session')) {
+                  window.history.back();
+                } else {
+                  setIsSessionStarted(false);
+                }
+              }}
               className="btn-primary flex-1 justify-center py-3 text-xs font-bold bg-red-600 hover:bg-red-500"
             >
               <span>Choose Another Category</span>
@@ -471,7 +668,13 @@ export const SpeakingPracticeView = () => {
       {/* Top Navigation */}
       <div className="flex items-center justify-between">
         <button
-          onClick={() => setIsSessionStarted(false)}
+          onClick={() => {
+            if (typeof window !== 'undefined' && window.location.hash.includes('session')) {
+              window.history.back();
+            } else {
+              setIsSessionStarted(false);
+            }
+          }}
           className="btn-secondary py-2 px-4 text-xs font-bold"
         >
           ← Change Category
@@ -565,16 +768,16 @@ export const SpeakingPracticeView = () => {
 
           {/* Microphone Voice Button */}
           <button
-            onClick={handleStartSpeaking}
-            disabled={isRecording || isCorrect}
+            onClick={isRecording ? handleStopSpeaking : handleStartSpeaking}
+            disabled={isCorrect}
             className={`py-3.5 px-7 rounded-2xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-lg transition-all ${
               isRecording 
-                ? 'bg-red-600 text-white animate-pulse'
+                ? 'bg-red-600 text-white animate-pulse hover:bg-red-700'
                 : 'bg-slate-900 text-white dark:bg-slate-800 hover:bg-slate-800 border border-slate-700 disabled:opacity-50'
             }`}
           >
-            <Mic className="w-4 h-4 text-red-400" />
-            <span>{isRecording ? 'Listening... Speak Japanese Now' : '🎤 Start Speaking'}</span>
+            <Mic className={`w-4 h-4 ${isRecording ? 'text-white' : 'text-red-400'}`} />
+            <span>{isRecording ? '🔴 Listening... (Tap to finish)' : '🎤 Start Speaking'}</span>
           </button>
         </div>
 

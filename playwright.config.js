@@ -73,6 +73,7 @@ export default defineConfig({
       name: 'Mobile iPhone 12',
       use: {
         ...devices['iPhone 12'],
+        defaultBrowserType: 'chromium',
         viewport: { width: 390, height: 844 },
         isMobile: true,
         hasTouch: true,
@@ -84,6 +85,7 @@ export default defineConfig({
       name: 'Mobile Small iPhone SE',
       use: {
         ...devices['iPhone SE'],
+        defaultBrowserType: 'chromium',
         viewport: { width: 375, height: 667 },
         isMobile: true,
         hasTouch: true,

@@ -26,7 +26,7 @@ import { jlpt500QuizBank } from './data/quizzesData';
 import { IntroVideo } from './components/IntroVideo';
 
 const MainContent = () => {
-  const { activeView, setActiveView, currentUser } = useApp();
+  const { activeView, setActiveView, navigateBack, currentUser } = useApp();
 
   // Mandatory Login First Protection
   if (!currentUser) {
@@ -61,7 +61,7 @@ const MainContent = () => {
       case 'quiz':
         return (
           <div className="py-10 container-custom space-y-6">
-            <button onClick={() => setActiveView('practice')} className="btn-secondary py-2 px-4 text-xs font-bold">
+            <button onClick={() => navigateBack('practice')} className="btn-secondary py-2 px-4 text-xs font-bold">
               ← Back to Practice Hub
             </button>
             <QuizEngine questions={jlpt500QuizBank} quizTitle={`JLPT Practice Exam (${jlpt500QuizBank.length}+ Questions)`} />

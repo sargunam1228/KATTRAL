@@ -10,7 +10,7 @@ import { n4VocabData } from '../data/n4VocabData';
 import { Pencil, Sparkles, BookOpen, RotateCcw, Trophy, ArrowRight } from 'lucide-react';
 
 export const WritingPracticeView = () => {
-  const { setActiveView } = useApp();
+  const { setActiveView, navigateBack } = useApp();
   const [filterType, setFilterType] = useState('All');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -108,7 +108,7 @@ export const WritingPracticeView = () => {
               <span>Retry Practice</span>
             </button>
             <button
-              onClick={() => setActiveView('practice')}
+              onClick={() => navigateBack('practice')}
               className="btn-primary flex-1 justify-center py-3 text-xs font-bold bg-red-600 hover:bg-red-500"
             >
               <span>Back to Practice Hub</span>
@@ -126,7 +126,7 @@ export const WritingPracticeView = () => {
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <button
-          onClick={() => setActiveView('practice')}
+          onClick={() => navigateBack('practice')}
           className="btn-secondary py-2 px-4 text-xs font-bold self-start"
         >
           ← Back to Practice Hub

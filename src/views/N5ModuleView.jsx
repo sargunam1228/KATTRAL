@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   hiraganaBasic, 
@@ -32,6 +32,24 @@ export const N5ModuleView = () => {
   const [practiceWritingKanji, setPracticeWritingKanji] = useState(null);
   const [n5Questions, setN5Questions] = useState(() => generateN5QuizSet(15));
   const [grammarQuery, setGrammarQuery] = useState('');
+
+  // Sync back navigation between kanji writing practice and kanji card list
+  useEffect(() => {
+    const handlePop = (e) => {
+      if (practiceWritingKanji && (!e.state || !e.state.writing)) {
+        setPracticeWritingKanji(null);
+      }
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [practiceWritingKanji]);
+
+  const handleStartWritingKanji = (kanji) => {
+    setPracticeWritingKanji(kanji);
+    if (typeof window !== 'undefined' && window.history?.pushState) {
+      window.history.pushState({ view: 'n5', writing: true }, '', '#n5-writing');
+    }
+  };
 
   const tabs = [
     { id: 'vocab', label: '1. N5 Full Vocabulary' },
@@ -195,8 +213,14 @@ export const N5ModuleView = () => {
           {practiceWritingKanji ? (
             <div className="space-y-4">
               <button
-                onClick={() => setPracticeWritingKanji(null)}
-                className="btn-secondary py-2 px-4 text-xs"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.location.hash.includes('writing')) {
+                    window.history.back();
+                  } else {
+                    setPracticeWritingKanji(null);
+                  }
+                }}
+                className="btn-secondary py-2 px-4 text-xs font-bold"
               >
                 ← Back to N5 Kanji Cards
               </button>
@@ -250,8 +274,8 @@ export const N5ModuleView = () => {
                   </div>
 
                   <button
-                    onClick={() => setPracticeWritingKanji(kanji)}
-                    className="btn-primary w-full justify-center py-2.5 text-xs"
+                    onClick={() => handleStartWritingKanji(kanji)}
+                    className="btn-primary w-full justify-center py-2.5 text-xs font-bold"
                   >
                     <Pencil className="w-4 h-4" />
                     <span>Practice Writing "{kanji.kanji}"</span>

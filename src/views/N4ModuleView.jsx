@@ -36,6 +36,35 @@ export const N4ModuleView = () => {
   const [practiceWritingKanji, setPracticeWritingKanji] = useState(null);
   const [n4Questions, setN4Questions] = useState(() => generateN4QuizSet(15));
   const [grammarQuery, setGrammarQuery] = useState('');
+  const [vocabPage, setVocabPage] = useState(1);
+
+  // Sync back navigation between modals and N4 module lists
+  useEffect(() => {
+    const handlePop = (e) => {
+      if (selectedGrammarDetail && (!e.state || !e.state.modal)) {
+        setSelectedGrammarDetail(null);
+      }
+      if (practiceWritingKanji && (!e.state || !e.state.writing)) {
+        setPracticeWritingKanji(null);
+      }
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [selectedGrammarDetail, practiceWritingKanji]);
+
+  const handleStartWritingKanji = (kanji) => {
+    setPracticeWritingKanji(kanji);
+    if (typeof window !== 'undefined' && window.history?.pushState) {
+      window.history.pushState({ view: 'n4', writing: true }, '', '#n4-writing');
+    }
+  };
+
+  const handleOpenGrammarDetail = (item) => {
+    setSelectedGrammarDetail(item);
+    if (typeof window !== 'undefined' && window.history?.pushState) {
+      window.history.pushState({ view: 'n4', modal: true }, '', '#n4-grammar-detail');
+    }
+  };
 
   // Extract unique categories from N4 grammar data
   const grammarCategories = ['All', ...Array.from(new Set(n4GrammarData.map((g) => g.category).filter(Boolean)))];
@@ -88,8 +117,6 @@ export const N4ModuleView = () => {
       </div>
     );
   }
-
-  const [vocabPage, setVocabPage] = useState(1);
 
   const filteredVocab = vocabCategory === 'All'
     ? n4VocabData
@@ -276,8 +303,14 @@ export const N4ModuleView = () => {
           {practiceWritingKanji ? (
             <div className="space-y-4">
               <button
-                onClick={() => setPracticeWritingKanji(null)}
-                className="btn-secondary py-2 px-4 text-xs"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.location.hash.includes('writing')) {
+                    window.history.back();
+                  } else {
+                    setPracticeWritingKanji(null);
+                  }
+                }}
+                className="btn-secondary py-2 px-4 text-xs font-bold"
               >
                 ← Back to N4 Kanji Cards
               </button>
@@ -334,7 +367,7 @@ export const N4ModuleView = () => {
                   </div>
 
                   <button
-                    onClick={() => setPracticeWritingKanji(kanji)}
+                    onClick={() => handleStartWritingKanji(kanji)}
                     className="w-full py-2.5 rounded-full bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"
                   >
                     <Pencil className="w-4 h-4" />
@@ -519,7 +552,7 @@ export const N4ModuleView = () => {
                     Includes {g.examples?.length || 1} examples • Notes & JLPT Tips
                   </span>
                   <button
-                    onClick={() => setSelectedGrammarDetail(g)}
+                    onClick={() => handleOpenGrammarDetail(g)}
                     className="text-xs font-extrabold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 group"
                   >
                     <span>View Notes & Exam Tips</span>
@@ -564,7 +597,13 @@ export const N4ModuleView = () => {
               </div>
 
               <button
-                onClick={() => setSelectedGrammarDetail(null)}
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.location.hash.includes('grammar-detail')) {
+                    window.history.back();
+                  } else {
+                    setSelectedGrammarDetail(null);
+                  }
+                }}
                 className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X className="w-6 h-6" />
